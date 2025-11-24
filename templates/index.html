@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IntelliRoute - Smart Navigation System</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .map-container {
+            flex: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .car-types {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .car-type-btn {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .car-type-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .car-type-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .car-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .car-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .car-speed {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px;
+            background: #f8f9fa;
+            color: #666;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .route-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .summary-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-label {
+            color: #666;
+        }
+
+        .summary-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .steps-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-left: 3px solid #667eea;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 0 10px 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-route {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .step-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .node-marker {
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .road-primary { stroke: #e74c3c; stroke-width: 6; }
+        .road-secondary { stroke: #f39c12; stroke-width: 4; }
+        .road-tertiary { stroke: #27ae60; stroke-width: 3; }
+        .road-highway { stroke: #c0392b; stroke-width: 8; }
+
+        .start-marker, .end-marker {
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .node-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>🚗 IntelliRoute</h1>
+                <p>Smart Navigation System</p>
+            </div>
+
+            <!-- Route Controls -->
+            <div class="control-section">
+                <div class="section-title">
+                    <i class="fas fa-route"></i>
+                    Route Planning
+                </div>
+                
+                <div class="input-group">
+                    <label for="startNode"><i class="fas fa-play-circle"></i> Start Location</label>
+                    <select id="startNode" onchange="updateStartLocation()">
+                        <option value="">Select start location</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="endNode"><i class="fas fa-flag-checkered"></i> Destination</label>
+                    <select id="endNode" onchange="updateEndLocation()">
+                        <option value="">Select destination</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label><i class="fas fa-car"></i> Vehicle Type</label>
+                    <div class="car-types" id="carTypes">
+                        <!-- Car types will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="calculateRoute()">
+                    <i class="fas fa-search"></i> Find Optimal Route
+                </button>
+                <button class="btn-secondary" onclick="clearRoute()">
+                    <i class="fas fa-times"></i> Clear Route
+                </button>
+
+                <!-- Available Nodes Info -->
+                <div class="node-info">
+                    <p style="margin: 0; font-size: 12px; color: #666;">
+                        <strong>Available Locations (1-8):</strong><br>
+                        <span id="availableNodesList">Loading...</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Route Summary -->
+            <div class="control-section" id="routeSummary" style="display: none;">
+                <div class="section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Route Summary
+                </div>
+                <div class="route-summary" id="summaryContent">
+                    <!-- Summary will be populated here -->
+                </div>
+            </div>
+
+            <!-- Route Steps -->
+            <div class="control-section">
+                <div class="section-title">
+                    <i class="fas fa-list-ol"></i>
+                    Turn-by-Turn Directions
+                </div>
+                <div class="steps-container" id="stepsContainer">
+                    <div class="loading" id="loadingIndicator">
+                        <div class="loading-spinner"></div>
+                        <p>Calculating optimal route...</p>
+                    </div>
+                    <div id="stepsList">
+                        <!-- Steps will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let graphNodes = {};
+        let routeLayer = null;
+        let nodeMarkers = [];
+        let startMarker = null;
+        let endMarker = null;
+        let selectedCarType = 'car';
+        let availableNodes = [];
+
+        // Initialize application
+        async function initApp() {
+            await initMap();
+            await loadCarTypes();
+            await loadGraphData();
+            await loadAvailableNodes();
+        }
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([24.8607, 67.0011], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            return Promise.resolve();
+        }
+
+        // Load car types
+        async function loadCarTypes() {
+            try {
+                const response = await fetch('/api/car-types');
+                const carTypes = await response.json();
+                
+                const carTypesContainer = document.getElementById('carTypes');
+                carTypesContainer.innerHTML = '';
+                
+                Object.entries(carTypes).forEach(([type, data]) => {
+                    const btn = document.createElement('div');
+                    btn.className = `car-type-btn ${type === selectedCarType ? 'active' : ''}`;
+                    btn.innerHTML = `
+                        <div class="car-icon">${data.icon}</div>
+                        <div class="car-name">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                        <div class="car-speed">${data.speed} km/h</div>
+                    `;
+                    btn.onclick = () => selectCarType(type, btn);
+                    carTypesContainer.appendChild(btn);
+                });
+            } catch (error) {
+                console.error('Error loading car types:', error);
+            }
+        }
+
+        function selectCarType(type, element) {
+            selectedCarType = type;
+            
+            // Update UI
+            document.querySelectorAll('.car-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+
+        // Load available nodes
+        async function loadAvailableNodes() {
+            try {
+                const response = await fetch('/api/available-nodes');
+                availableNodes = await response.json();
+                
+                // Populate dropdowns
+                const startSelect = document.getElementById('startNode');
+                const endSelect = document.getElementById('endNode');
+                
+                startSelect.innerHTML = '<option value="">Select start location</option>';
+                endSelect.innerHTML = '<option value="">Select destination</option>';
+                
+                availableNodes.forEach(node => {
+                    const option1 = new Option(`${node.id}: ${node.name}`, node.id);
+                    const option2 = new Option(`${node.id}: ${node.name}`, node.id);
+                    startSelect.add(option1);
+                    endSelect.add(option2);
+                });
+                
+                // Update available nodes list
+                const nodesList = document.getElementById('availableNodesList');
+                nodesList.innerHTML = availableNodes.map(node => 
+                    `${node.id}: ${node.name}`
+                ).join(', ');
+                
+            } catch (error) {
+                console.error('Error loading available nodes:', error);
+            }
+        }
+
+        function updateStartLocation() {
+            const select = document.getElementById('startNode');
+            const nodeId = parseInt(select.value);
+            if (nodeId && graphNodes[nodeId]) {
+                updateStartMarker(graphNodes[nodeId]);
+            }
+        }
+
+        function updateEndLocation() {
+            const select = document.getElementById('endNode');
+            const nodeId = parseInt(select.value);
+            if (nodeId && graphNodes[nodeId]) {
+                updateEndMarker(graphNodes[nodeId]);
+            }
+        }
+
+        // Load graph data
+        async function loadGraphData() {
+            try {
+                showLoading(true);
+                const response = await fetch('/api/graph');
+                const data = await response.json();
+                
+                console.log('Loaded graph data:', data);
+
+                // Store nodes
+                data.nodes.forEach(node => {
+                    graphNodes[node.id] = node;
+                });
+
+                // Create node markers
+                createNodeMarkers(data.nodes);
+                
+                // Draw roads with different styles based on type
+                drawRoads(data.edges);
+
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error loading graph:', error);
+                showLoading(false);
+            }
+        }
+
+        function createNodeMarkers(nodes) {
+            nodes.forEach(node => {
+                const marker = L.marker([node.lat, node.lng], {
+                    icon: L.divIcon({
+                        className: 'node-marker',
+                        html: node.id,
+                        iconSize: [30, 30]
+                    })
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <div style="text-align: center; padding: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #333;">📍 ${node.name}</h3>
+                        <p style="margin: 5px 0; color: #666;">Node ID: <strong>${node.id}</strong></p>
+                        <p style="margin: 5px 0; color: #666;">Lat: ${node.lat.toFixed(6)}</p>
+                        <p style="margin: 5px 0; color: #666;">Lng: ${node.lng.toFixed(6)}</p>
+                    </div>
+                `);
+                
+                marker.on('click', function() {
+                    // Auto-fill the form when clicking on nodes
+                    const startSelect = document.getElementById('startNode');
+                    const endSelect = document.getElementById('endNode');
+                    
+                    if (!startSelect.value) {
+                        startSelect.value = node.id;
+                        updateStartMarker(node);
+                    } else if (!endSelect.value) {
+                        endSelect.value = node.id;
+                        updateEndMarker(node);
+                    }
+                });
+                
+                nodeMarkers.push(marker);
+            });
+        }
+
+        function drawRoads(edges) {
+            edges.forEach(edge => {
+                const sourceNode = graphNodes[edge.source];
+                const targetNode = graphNodes[edge.target];
+                
+                if (sourceNode && targetNode) {
+                    const roadClass = `road-${edge.road_type}`;
+                    
+                    L.polyline([
+                        [sourceNode.lat, sourceNode.lng],
+                        [targetNode.lat, targetNode.lng]
+                    ], {
+                        color: getRoadColor(edge.road_type),
+                        weight: getRoadWeight(edge.road_type),
+                        opacity: 0.7,
+                        lineJoin: 'round'
+                    }).addTo(map).bindPopup(`
+                        <strong>${edge.road_type.toUpperCase()} Road</strong><br>
+                        From ${graphNodes[edge.source].name} to ${graphNodes[edge.target].name}<br>
+                        Distance: ${(edge.length/1000).toFixed(1)} km
+                    `);
+                }
+            });
+        }
+
+        function getRoadColor(roadType) {
+            const colors = {
+                'primary': '#e74c3c',
+                'secondary': '#f39c12', 
+                'tertiary': '#27ae60',
+                'highway': '#c0392b'
+            };
+            return colors[roadType] || '#666';
+        }
+
+        function getRoadWeight(roadType) {
+            const weights = {
+                'primary': 6,
+                'secondary': 4,
+                'tertiary': 3,
+                'highway': 8
+            };
+            return weights[roadType] || 3;
+        }
+
+        function updateStartMarker(node) {
+            if (startMarker) map.removeLayer(startMarker);
+            
+            startMarker = L.marker([node.lat, node.lng], {
+                icon: L.divIcon({
+                    className: 'start-marker',
+                    html: '🟢',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                })
+            }).addTo(map).bindPopup(`<strong>Start:</strong> ${node.name}`);
+        }
+
+        function updateEndMarker(node) {
+            if (endMarker) map.removeLayer(endMarker);
+            
+            endMarker = L.marker([node.lat, node.lng], {
+                icon: L.divIcon({
+                    className: 'end-marker',
+                    html: '🔴',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                })
+            }).addTo(map).bindPopup(`<strong>Destination:</strong> ${node.name}`);
+        }
+
+        // Calculate route
+        async function calculateRoute() {
+            const startSelect = document.getElementById('startNode');
+            const endSelect = document.getElementById('endNode');
+            
+            const startNode = parseInt(startSelect.value);
+            const endNode = parseInt(endSelect.value);
+
+            if (!startNode || !endNode) {
+                alert('Please select both start and end locations from the dropdown');
+                return;
+            }
+
+            if (startNode === endNode) {
+                alert('Start and end locations cannot be the same');
+                return;
+            }
+
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/route', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        source: startNode,
+                        target: endNode,
+                        car_type: selectedCarType
+                    })
+                });
+
+                const routeData = await response.json();
+
+                if (routeData.error) {
+                    alert('Error: ' + routeData.error);
+                    showLoading(false);
+                    return;
+                }
+
+                // Update markers
+                updateStartMarker(graphNodes[startNode]);
+                updateEndMarker(graphNodes[endNode]);
+
+                // Display route
+                displayRoute(routeData);
+                
+                // Show summary and steps
+                displayRouteSummary(routeData.summary);
+                displayRouteSteps(routeData.steps);
+                
+                showLoading(false);
+
+            } catch (error) {
+                console.error('Error calculating route:', error);
+                alert('Error calculating route');
+                showLoading(false);
+            }
+        }
+
+        function displayRoute(routeData) {
+            // Clear previous route
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+            }
+
+            // Draw new route
+            const routeCoords = routeData.path.map(point => [point.lat, point.lng]);
+            
+            routeLayer = L.polyline(routeCoords, {
+                color: '#667eea',
+                weight: 8,
+                opacity: 0.8,
+                lineJoin: 'round',
+                dashArray: '10, 10'
+            }).addTo(map);
+
+            // Animate the route
+            animateRoute(routeLayer);
+
+            // Fit map to show entire route
+            map.fitBounds(routeLayer.getBounds());
+        }
+
+        function animateRoute(layer) {
+            // Simple animation effect
+            let dashOffset = 0;
+            const animate = () => {
+                dashOffset = (dashOffset + 1) % 1000;
+                layer.setStyle({dashOffset: dashOffset});
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        function displayRouteSummary(summary) {
+            const summaryElement = document.getElementById('routeSummary');
+            const summaryContent = document.getElementById('summaryContent');
+            
+            summaryContent.innerHTML = `
+                <div class="summary-item">
+                    <span class="summary-label">Distance:</span>
+                    <span class="summary-value">${(summary.total_distance/1000).toFixed(1)} km</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Est. Time:</span>
+                    <span class="summary-value">${summary.total_time.toFixed(1)} min</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Vehicle:</span>
+                    <span class="summary-value">${summary.car_type.charAt(0).toUpperCase() + summary.car_type.slice(1)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Speed:</span>
+                    <span class="summary-value">${summary.car_speed} km/h</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Steps:</span>
+                    <span class="summary-value">${summary.num_steps}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Calc. Time:</span>
+                    <span class="summary-value">${summary.calculation_time.toFixed(3)}s</span>
+                </div>
+            `;
+            
+            summaryElement.style.display = 'block';
+        }
+
+        function displayRouteSteps(steps) {
+            const stepsList = document.getElementById('stepsList');
+            stepsList.innerHTML = '';
+            
+            steps.forEach((step, index) => {
+                const stepElement = document.createElement('div');
+                stepElement.className = 'step-item';
+                stepElement.innerHTML = `
+                    <div class="step-number">${index + 1}</div>
+                    <div class="step-content">
+                        <div class="step-route">${step.from_name} → ${step.to_name}</div>
+                        <div class="step-details">
+                            ${(step.distance/1000).toFixed(1)} km • ${step.road_type.toUpperCase()} ROAD
+                        </div>
+                    </div>
+                `;
+                stepsList.appendChild(stepElement);
+            });
+        }
+
+        function clearRoute() {
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+                routeLayer = null;
+            }
+            
+            if (startMarker) {
+                map.removeLayer(startMarker);
+                startMarker = null;
+            }
+            
+            if (endMarker) {
+                map.removeLayer(endMarker);
+                endMarker = null;
+            }
+            
+            document.getElementById('startNode').value = '';
+            document.getElementById('endNode').value = '';
+            document.getElementById('routeSummary').style.display = 'none';
+            document.getElementById('stepsList').innerHTML = '';
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loadingIndicator');
+            loading.style.display = show ? 'block' : 'none';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
